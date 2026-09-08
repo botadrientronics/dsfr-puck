@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Puck, Render, Data } from '@puckeditor/core';
 import { puckConfig, DSFR_COMPONENTS_SUPPORT, getSupportStats } from 'dsfr-puck';
-import '@codegouvfr/react-dsfr/dist/dsfr/dsfr.min.css';
-import '@codegouvfr/react-dsfr/dist/utility/utility.min.css';
+import '@codegouvfr/react-dsfr/dsfr/dsfr.min.css';
+import '@codegouvfr/react-dsfr/dsfr/utility/utility.min.css';
 
 // Type pour les données Puck
 type PuckData = {

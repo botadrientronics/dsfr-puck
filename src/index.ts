@@ -2,8 +2,8 @@
 // ==========================================================================
 
 // Export de la configuration Puck
-export { puckConfig, generateFullPuckConfig } from './puckConfig.complete';
-export { default as defaultPuckConfig } from './puckConfig.complete';
+export { puckConfig, generateFullPuckConfig } from './puckConfig';
+export { default as defaultPuckConfig } from './puckConfig';
 
 // Export des informations sur les composants
 export {

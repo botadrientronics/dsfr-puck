@@ -5,15 +5,14 @@
   "description": "Demo application for dsfr-puck - Test Puck Editor with DSFR components",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@codegouvfr/react-dsfr": "^1.34.0",
-    "@gouvfr/dsfr": "^1.14.2",
-    "@puckeditor/core": "^0.17.0",
+    "@puckeditor/core": "^0.23.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
