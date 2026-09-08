@@ -1,50 +1,52 @@
 import React, { useState } from 'react';
-import { Puck, Render, Data } from '@puckeditor/core';
+import { Puck, Render } from '@puckeditor/core';
+import type { Data } from '@puckeditor/core';
 import { puckConfig, DSFR_COMPONENTS_SUPPORT, getSupportStats } from 'dsfr-puck';
 import '@codegouvfr/react-dsfr/dsfr/dsfr.min.css';
 import '@codegouvfr/react-dsfr/dsfr/utility/utility.min.css';
 
-// Type pour les données Puck
-type PuckData = {
-  content: Array<{
-    type: string;
-    props: Record<string, any>;
-  }>;
+// Données Puck initiales. Chaque composant doit porter un `props.id` unique
+// (requis par Puck pour indexer l'arbre de calques).
+const initialData: Data = {
+  root: { props: {} },
+  content: [
+    {
+      type: 'DsfrButton',
+      props: {
+        id: 'button-1',
+        children: 'Bouton Primaire',
+        variant: 'primary',
+        size: 'md',
+      },
+    },
+    {
+      type: 'DsfrCard',
+      props: {
+        id: 'card-1',
+        title: 'Bienvenue dans dsfr-puck',
+        desc: "Cette démo montre l'intégration des composants DSFR avec Puck Editor.",
+        size: 'md',
+      },
+    },
+    {
+      type: 'DsfrAlert',
+      props: {
+        id: 'alert-1',
+        severity: 'info',
+        title: 'Information',
+        description: 'Vous pouvez modifier ce contenu directement dans l\'éditeur.',
+      },
+    },
+  ],
+  zones: {},
 };
 
 const App = () => {
-  const [data, setData] = useState<PuckData>({
-    content: [
-      {
-        type: 'DsfrButton',
-        props: {
-          children: 'Bouton Primaire',
-          variant: 'primary',
-          size: 'md',
-        },
-      },
-      {
-        type: 'DsfrCard',
-        props: {
-          title: 'Bienvenue dans dsfr-puck',
-          desc: 'Cette démo montre l\'intégration complète des composants DSFR avec Puck Editor.',
-          size: 'md',
-        },
-      },
-      {
-        type: 'DsfrAlert',
-        props: {
-          type: 'info',
-          title: 'Information',
-          description: 'Vous pouvez modifier ce contenu directement dans l\'éditeur.',
-        },
-      },
-    ],
-  });
+  const [data, setData] = useState<Data>(initialData);
 
   const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
 
-  const handlePublish = (newData: PuckData) => {
+  const handlePublish = (newData: Data) => {
     console.log('Données sauvegardées:', newData);
     setData(newData);
   };

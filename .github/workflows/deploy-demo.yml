@@ -23,16 +23,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Installation des dépendances
-        working-directory: demo
         run: npm ci --no-audit --no-fund
 
       - name: Build de la démo
-        working-directory: demo
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
-        run: npm run build
+        run: npm run demo:build
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -5,6 +5,127 @@ import { DSFR_COMPONENTS_SUPPORT, DsfrComponentName } from './components';
 // Configuration Puck complète pour TOUS les composants DSFR
 // Cette configuration utilise les composants de @codegouvfr/react-dsfr
 
+// --- Registre des composants react-dsfr -----------------------------------
+// react-dsfr (>= 1.x) n'expose plus les composants depuis la racine du paquet :
+// chaque composant vit sur son propre sous-chemin. On les regroupe ici dans un
+// registre indexable par nom, utilisé par les fonctions `render` de Puck.
+import { Button } from '@codegouvfr/react-dsfr/Button';
+import { ButtonsGroup } from '@codegouvfr/react-dsfr/ButtonsGroup';
+import { Input } from '@codegouvfr/react-dsfr/Input';
+import { Select } from '@codegouvfr/react-dsfr/Select';
+import { Select as SelectNext } from '@codegouvfr/react-dsfr/SelectNext';
+import { Checkbox } from '@codegouvfr/react-dsfr/Checkbox';
+import { RadioButtons } from '@codegouvfr/react-dsfr/RadioButtons';
+import { ToggleSwitch } from '@codegouvfr/react-dsfr/ToggleSwitch';
+import { ToggleSwitchGroup } from '@codegouvfr/react-dsfr/ToggleSwitchGroup';
+import { Range } from '@codegouvfr/react-dsfr/Range';
+import { Upload } from '@codegouvfr/react-dsfr/Upload';
+import { Badge } from '@codegouvfr/react-dsfr/Badge';
+import { Tag } from '@codegouvfr/react-dsfr/Tag';
+import { TagsGroup } from '@codegouvfr/react-dsfr/TagsGroup';
+import { Alert } from '@codegouvfr/react-dsfr/Alert';
+import { CallOut } from '@codegouvfr/react-dsfr/CallOut';
+import { Quote } from '@codegouvfr/react-dsfr/Quote';
+import { Highlight } from '@codegouvfr/react-dsfr/Highlight';
+import { Notice } from '@codegouvfr/react-dsfr/Notice';
+import { Download } from '@codegouvfr/react-dsfr/Download';
+import { Card } from '@codegouvfr/react-dsfr/Card';
+import { Accordion } from '@codegouvfr/react-dsfr/Accordion';
+import { Tabs } from '@codegouvfr/react-dsfr/Tabs';
+import { Table } from '@codegouvfr/react-dsfr/Table';
+import { Pagination } from '@codegouvfr/react-dsfr/Pagination';
+import { Stepper } from '@codegouvfr/react-dsfr/Stepper';
+import { Summary } from '@codegouvfr/react-dsfr/Summary';
+import { Breadcrumb } from '@codegouvfr/react-dsfr/Breadcrumb';
+import { SideMenu } from '@codegouvfr/react-dsfr/SideMenu';
+import { SkipLinks } from '@codegouvfr/react-dsfr/SkipLinks';
+import { SegmentedControl } from '@codegouvfr/react-dsfr/SegmentedControl';
+import { Header } from '@codegouvfr/react-dsfr/Header';
+import { Footer } from '@codegouvfr/react-dsfr/Footer';
+import { SearchBar } from '@codegouvfr/react-dsfr/SearchBar';
+import { FranceConnectButton } from '@codegouvfr/react-dsfr/FranceConnectButton';
+import { AgentConnectButton } from '@codegouvfr/react-dsfr/AgentConnectButton';
+import { MonCompteProButton } from '@codegouvfr/react-dsfr/MonCompteProButton';
+import { ProConnectButton } from '@codegouvfr/react-dsfr/ProConnectButton';
+import { Display } from '@codegouvfr/react-dsfr/Display';
+import { Follow } from '@codegouvfr/react-dsfr/Follow';
+import { LanguageSelect } from '@codegouvfr/react-dsfr/LanguageSelect';
+import { Tooltip } from '@codegouvfr/react-dsfr/Tooltip';
+import { Tile } from '@codegouvfr/react-dsfr/Tile';
+
+// Affiché à la place d'un composant absent du paquet react-dsfr installé
+// (Modal — API `createModal` incompatible avec un rendu inline —, Artwork, etc.).
+const MissingComponent: React.FC<{ [key: string]: any }> = () => (
+  <div className="fr-alert fr-alert--warning fr-alert--sm">
+    <p>Ce composant n'est pas disponible dans cette démo.</p>
+  </div>
+);
+
+// Retire les props internes injectées par Puck avant de les transmettre à un
+// composant react-dsfr (qui les propagerait sur un noeud DOM → warning React).
+const PUCK_INTERNAL_PROPS = ['id', 'editMode', 'puck', 'dragRef', 'isSelected'];
+const dsfrProps = (props: Record<string, any>) => {
+  const clean: Record<string, any> = {};
+  for (const key of Object.keys(props)) {
+    if (!PUCK_INTERNAL_PROPS.includes(key)) clean[key] = props[key];
+  }
+  return clean;
+};
+
+// react-dsfr n'a pas de composant `Textarea` : c'est `Input` avec la prop `textArea`.
+const Textarea: React.FC<any> = (props) => {
+  const InputAny = Input as React.ComponentType<any>;
+  return <InputAny textArea label="" {...dsfrProps(props)} />;
+};
+
+const DSFR: Record<string, React.ComponentType<any> | undefined> = {
+  Button,
+  ButtonsGroup,
+  Input,
+  Textarea,
+  Select,
+  SelectNext,
+  Checkbox,
+  RadioButtons,
+  ToggleSwitch,
+  ToggleSwitchGroup,
+  Range,
+  Upload,
+  Badge,
+  Tag,
+  TagsGroup,
+  Alert,
+  CallOut,
+  Quote,
+  Highlight,
+  Notice,
+  Download,
+  Card,
+  Accordion,
+  Tabs,
+  Table,
+  Pagination,
+  Stepper,
+  Summary,
+  Breadcrumb,
+  SideMenu,
+  SkipLinks,
+  SegmentedControl,
+  Header,
+  Footer,
+  SearchBar,
+  FranceConnectButton,
+  AgentConnectButton,
+  MonCompteProButton,
+  ProConnectButton,
+  Display,
+  Follow,
+  LanguageSelect,
+  Tooltip,
+  Tile,
+};
+// ------------------------------------------------------------------------
+
 // Helper pour créer la configuration d'un composant
 const createComponentConfig = (componentName: DsfrComponentName) => {
   const info = DSFR_COMPONENTS_SUPPORT[componentName];
@@ -75,8 +196,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Button = require('@codegouvfr/react-dsfr').Button;
-          return <Button {...props} />;
+          const Button = DSFR.Button ?? MissingComponent;
+          return <Button {...dsfrProps(props)} />;
         },
       };
 
@@ -119,8 +240,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Input = require('@codegouvfr/react-dsfr').Input;
-          return <Input {...props} />;
+          const Input = DSFR.Input ?? MissingComponent;
+          return <Input {...dsfrProps(props)} />;
         },
       };
 
@@ -168,8 +289,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Textarea = require('@codegouvfr/react-dsfr').Textarea;
-          return <Textarea {...props} />;
+          const Textarea = DSFR.Textarea ?? MissingComponent;
+          return <Textarea {...dsfrProps(props)} />;
         },
       };
 
@@ -207,8 +328,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Select = require('@codegouvfr/react-dsfr').Select;
-          return <Select {...props} />;
+          const Select = DSFR.Select ?? MissingComponent;
+          return <Select {...dsfrProps(props)} />;
         },
       };
 
@@ -246,8 +367,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Checkbox = require('@codegouvfr/react-dsfr').Checkbox;
-          return <Checkbox {...props} />;
+          const Checkbox = DSFR.Checkbox ?? MissingComponent;
+          return <Checkbox {...dsfrProps(props)} />;
         },
       };
 
@@ -292,8 +413,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const RadioButtons = require('@codegouvfr/react-dsfr').RadioButtons;
-          return <RadioButtons {...props} />;
+          const RadioButtons = DSFR.RadioButtons ?? MissingComponent;
+          return <RadioButtons {...dsfrProps(props)} />;
         },
       };
 
@@ -341,8 +462,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Card = require('@codegouvfr/react-dsfr').Card;
-          return <Card {...props} />;
+          const Card = DSFR.Card ?? MissingComponent;
+          return <Card {...dsfrProps(props)} />;
         },
       };
 
@@ -381,8 +502,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Alert = require('@codegouvfr/react-dsfr').Alert;
-          return <Alert {...props} />;
+          const Alert = DSFR.Alert ?? MissingComponent;
+          return <Alert {...dsfrProps(props)} />;
         },
       };
 
@@ -421,8 +542,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Badge = require('@codegouvfr/react-dsfr').Badge;
-          return <Badge {...props} />;
+          const Badge = DSFR.Badge ?? MissingComponent;
+          return <Badge {...dsfrProps(props)} />;
         },
       };
 
@@ -445,8 +566,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Tag = require('@codegouvfr/react-dsfr').Tag;
-          return <Tag {...props} />;
+          const Tag = DSFR.Tag ?? MissingComponent;
+          return <Tag {...dsfrProps(props)} />;
         },
       };
 
@@ -469,8 +590,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Accordion = require('@codegouvfr/react-dsfr').Accordion;
-          return <Accordion {...props} />;
+          const Accordion = DSFR.Accordion ?? MissingComponent;
+          return <Accordion {...dsfrProps(props)} />;
         },
       };
 
@@ -501,8 +622,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Tabs = require('@codegouvfr/react-dsfr').Tabs;
-          return <Tabs {...props} />;
+          const Tabs = DSFR.Tabs ?? MissingComponent;
+          return <Tabs {...dsfrProps(props)} />;
         },
       };
 
@@ -545,8 +666,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Table = require('@codegouvfr/react-dsfr').Table;
-          return <Table {...props} />;
+          const Table = DSFR.Table ?? MissingComponent;
+          return <Table {...dsfrProps(props)} />;
         },
       };
 
@@ -571,7 +692,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Breadcrumb = require('@codegouvfr/react-dsfr').Breadcrumb;
+          const Breadcrumb = DSFR.Breadcrumb ?? MissingComponent;
           const segments = props.segments || [];
           return <Breadcrumb segments={segments} />;
         },
@@ -612,8 +733,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const CallOut = require('@codegouvfr/react-dsfr').CallOut;
-          return <CallOut {...props} />;
+          const CallOut = DSFR.CallOut ?? MissingComponent;
+          return <CallOut {...dsfrProps(props)} />;
         },
       };
 
@@ -641,8 +762,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Quote = require('@codegouvfr/react-dsfr').Quote;
-          return <Quote {...props} />;
+          const Quote = DSFR.Quote ?? MissingComponent;
+          return <Quote {...dsfrProps(props)} />;
         },
       };
 
@@ -685,8 +806,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const ToggleSwitch = require('@codegouvfr/react-dsfr').ToggleSwitch;
-          return <ToggleSwitch {...props} />;
+          const ToggleSwitch = DSFR.ToggleSwitch ?? MissingComponent;
+          return <ToggleSwitch {...dsfrProps(props)} />;
         },
       };
 
@@ -729,8 +850,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Range = require('@codegouvfr/react-dsfr').Range;
-          return <Range {...props} />;
+          const Range = DSFR.Range ?? MissingComponent;
+          return <Range {...dsfrProps(props)} />;
         },
       };
 
@@ -760,8 +881,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Stepper = require('@codegouvfr/react-dsfr').Stepper;
-          return <Stepper {...props} />;
+          const Stepper = DSFR.Stepper ?? MissingComponent;
+          return <Stepper {...dsfrProps(props)} />;
         },
       };
 
@@ -791,12 +912,12 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Summary = require('@codegouvfr/react-dsfr').Summary;
+          const Summary = DSFR.Summary ?? MissingComponent;
           const links = props.links?.map((link: any) => ({
             linkProps: { href: link.href },
             text: link.text,
           })) || [];
-          return <Summary {...props} links={links} />;
+          return <Summary {...dsfrProps(props)} links={links} />;
         },
       };
 
@@ -826,8 +947,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const SegmentedControl = require('@codegouvfr/react-dsfr').SegmentedControl;
-          return <SegmentedControl {...props} />;
+          const SegmentedControl = DSFR.SegmentedControl ?? MissingComponent;
+          return <SegmentedControl {...dsfrProps(props)} />;
         },
       };
 
@@ -869,8 +990,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const ButtonsGroup = require('@codegouvfr/react-dsfr').ButtonsGroup;
-          return <ButtonsGroup {...props} />;
+          const ButtonsGroup = DSFR.ButtonsGroup ?? MissingComponent;
+          return <ButtonsGroup {...dsfrProps(props)} />;
         },
       };
 
@@ -900,8 +1021,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const ToggleSwitchGroup = require('@codegouvfr/react-dsfr').ToggleSwitchGroup;
-          return <ToggleSwitchGroup {...props} />;
+          const ToggleSwitchGroup = DSFR.ToggleSwitchGroup ?? MissingComponent;
+          return <ToggleSwitchGroup {...dsfrProps(props)} />;
         },
       };
 
@@ -930,8 +1051,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const TagsGroup = require('@codegouvfr/react-dsfr').TagsGroup;
-          return <TagsGroup {...props} />;
+          const TagsGroup = DSFR.TagsGroup ?? MissingComponent;
+          return <TagsGroup {...dsfrProps(props)} />;
         },
       };
 
@@ -949,8 +1070,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Highlight = require('@codegouvfr/react-dsfr').Highlight;
-          return <Highlight {...props} />;
+          const Highlight = DSFR.Highlight ?? MissingComponent;
+          return <Highlight {...dsfrProps(props)} />;
         },
       };
 
@@ -974,12 +1095,12 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const SkipLinks = require('@codegouvfr/react-dsfr').SkipLinks;
+          const SkipLinks = DSFR.SkipLinks ?? MissingComponent;
           const links = props.links?.map((link: any) => ({
             linkProps: { href: link.href },
             text: link.text,
           })) || [];
-          return <SkipLinks {...props} links={links} />;
+          return <SkipLinks {...dsfrProps(props)} links={links} />;
         },
       };
 
@@ -1002,8 +1123,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Artwork = require('@codegouvfr/react-dsfr').Artwork;
-          return <Artwork {...props} />;
+          const Artwork = DSFR.Artwork ?? MissingComponent;
+          return <Artwork {...dsfrProps(props)} />;
         },
       };
 
@@ -1016,8 +1137,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const ArtworkGov = require('@codegouvfr/react-dsfr').ArtworkGov;
-          return <ArtworkGov {...props} />;
+          const ArtworkGov = DSFR.ArtworkGov ?? MissingComponent;
+          return <ArtworkGov {...dsfrProps(props)} />;
         },
       };
 
@@ -1040,8 +1161,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Pagination = require('@codegouvfr/react-dsfr').Pagination;
-          return <Pagination {...props} />;
+          const Pagination = DSFR.Pagination ?? MissingComponent;
+          return <Pagination {...dsfrProps(props)} />;
         },
       };
 
@@ -1063,8 +1184,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Component = require('@codegouvfr/react-dsfr')[componentName];
-          return <Component {...props} />;
+          const Component = DSFR[componentName] ?? MissingComponent;
+          return <Component {...dsfrProps(props)} />;
         },
       };
 
@@ -1088,9 +1209,9 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Modal = require('@codegouvfr/react-dsfr').Modal;
+          const Modal = DSFR.Modal ?? MissingComponent;
           // Note: Modal nécessite une gestion d'état externe
-          return <Modal {...props} isOpen={true} />;
+          return <Modal {...dsfrProps(props)} isOpen={true} />;
         },
       };
 
@@ -1124,8 +1245,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Notice = require('@codegouvfr/react-dsfr').Notice;
-          return <Notice {...props} />;
+          const Notice = DSFR.Notice ?? MissingComponent;
+          return <Notice {...dsfrProps(props)} />;
         },
       };
 
@@ -1153,8 +1274,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Tile = require('@codegouvfr/react-dsfr').Tile;
-          return <Tile {...props} />;
+          const Tile = DSFR.Tile ?? MissingComponent;
+          return <Tile {...dsfrProps(props)} />;
         },
       };
 
@@ -1184,8 +1305,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const LanguageSelect = require('@codegouvfr/react-dsfr').LanguageSelect;
-          return <LanguageSelect {...props} />;
+          const LanguageSelect = DSFR.LanguageSelect ?? MissingComponent;
+          return <LanguageSelect {...dsfrProps(props)} />;
         },
       };
 
@@ -1213,8 +1334,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Download = require('@codegouvfr/react-dsfr').Download;
-          return <Download {...props} />;
+          const Download = DSFR.Download ?? MissingComponent;
+          return <Download {...dsfrProps(props)} />;
         },
       };
 
@@ -1237,8 +1358,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const SearchBar = require('@codegouvfr/react-dsfr').SearchBar;
-          return <SearchBar {...props} />;
+          const SearchBar = DSFR.SearchBar ?? MissingComponent;
+          return <SearchBar {...dsfrProps(props)} />;
         },
       };
 
@@ -1266,8 +1387,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const SelectNext = require('@codegouvfr/react-dsfr').SelectNext;
-          return <SelectNext {...props} />;
+          const SelectNext = DSFR.SelectNext ?? MissingComponent;
+          return <SelectNext {...dsfrProps(props)} />;
         },
       };
 
@@ -1281,8 +1402,8 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
           },
         },
         render: (props: any) => {
-          const Component = require('@codegouvfr/react-dsfr')[componentName];
-          return Component ? <Component {...props} /> : <div>Composant non disponible</div>;
+          const Component = DSFR[componentName] ?? MissingComponent;
+          return Component ? <Component {...dsfrProps(props)} /> : <div>Composant non disponible</div>;
         },
       };
   }
