@@ -126,6 +126,206 @@ const DSFR: Record<string, React.ComponentType<any> | undefined> = {
 };
 // ------------------------------------------------------------------------
 
+// --- Robustesse du rendu dans Puck --------------------------------------
+// Quand on dépose un composant dans l'éditeur, il est monté avec ses seules
+// `defaultProps`. Beaucoup de composants react-dsfr lèvent une exception si une
+// prop structurée attendue (tableau `tabs`, `data`, `options`…) est absente.
+// Sans garde, cette exception démonte tout l'arbre React → page blanche.
+// On isole donc chaque composant derrière une frontière d'erreur.
+
+class ComponentErrorBoundary extends React.Component<
+  { name: string; resetKey: string; children: React.ReactNode },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidUpdate(prevProps: { resetKey: string }) {
+    // La config a changé (l'utilisateur a édité un champ) → on retente le rendu.
+    if (prevProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="fr-alert fr-alert--warning fr-alert--sm" role="alert">
+          <h3 className="fr-alert__title">
+            « {this.props.name} » n'a pas pu s'afficher
+          </h3>
+          <p>
+            Ce composant a besoin d'être configuré dans le panneau de droite.
+            {this.state.error?.message ? ` (${this.state.error.message})` : ''}
+          </p>
+        </div>
+      );
+    }
+    return <>{this.props.children}</>;
+  }
+}
+
+// Exécute la fonction `render` d'origine à l'intérieur de la frontière d'erreur.
+const RenderInvoker: React.FC<{
+  render: (props: any) => React.ReactNode;
+  props: any;
+}> = ({ render, props }) => <>{render(props)}</>;
+
+const serializeForKey = (props: Record<string, any>) => {
+  try {
+    return JSON.stringify(props, (_k, v) =>
+      typeof v === 'function' ? undefined : v
+    );
+  } catch {
+    return String(Date.now());
+  }
+};
+
+// Valeurs par défaut structurées pour les composants qui exigent des tableaux
+// ou objets non exprimables via un simple champ texte. Elles permettent au
+// composant de s'afficher immédiatement après un glisser-déposer.
+const STRUCTURED_DEFAULT_PROPS: Record<string, Record<string, any>> = {
+  Tabs: {
+    tabs: [
+      { label: 'Premier onglet', content: 'Contenu du premier onglet.' },
+      { label: 'Second onglet', content: 'Contenu du second onglet.' },
+    ],
+  },
+  Table: {
+    caption: 'Titre du tableau',
+    headers: ['Colonne 1', 'Colonne 2', 'Colonne 3'],
+    data: [
+      ['Ligne 1', 'Valeur', 'Valeur'],
+      ['Ligne 2', 'Valeur', 'Valeur'],
+    ],
+  },
+  Accordion: {
+    label: "Intitulé de l'accordéon",
+    children: "Contenu de l'accordéon.",
+  },
+  SegmentedControl: {
+    legend: 'Légende',
+    segments: [
+      { label: 'Option 1', nativeInputProps: { name: 'segmented', value: '1', defaultChecked: true } },
+      { label: 'Option 2', nativeInputProps: { name: 'segmented', value: '2' } },
+    ],
+  },
+  ButtonsGroup: {
+    buttons: [{ children: 'Bouton 1' }, { children: 'Bouton 2' }],
+  },
+  RadioButtons: {
+    legend: 'Légende des boutons radio',
+    options: [
+      { label: 'Option 1', nativeInputProps: { name: 'radio', value: '1' } },
+      { label: 'Option 2', nativeInputProps: { name: 'radio', value: '2' } },
+    ],
+  },
+  Checkbox: {
+    legend: 'Légende des cases à cocher',
+    options: [
+      { label: 'Option 1', nativeInputProps: { name: 'checkbox', value: '1' } },
+      { label: 'Option 2', nativeInputProps: { name: 'checkbox', value: '2' } },
+    ],
+  },
+  Select: {
+    label: 'Intitulé du sélecteur',
+    nativeSelectProps: {},
+  },
+  SkipLinks: {
+    links: [{ anchor: '#content', label: 'Contenu' }],
+  },
+  Summary: {
+    links: [
+      { linkProps: { href: '#section-1' }, text: 'Section 1' },
+      { linkProps: { href: '#section-2' }, text: 'Section 2' },
+    ],
+  },
+  Breadcrumb: {
+    currentPageLabel: 'Page courante',
+    segments: [{ label: 'Accueil', linkProps: { href: '/' } }],
+  },
+  Stepper: { currentStep: 1, stepCount: 3, title: 'Étape en cours' },
+  ToggleSwitchGroup: {
+    toggles: [
+      { label: 'Interrupteur 1', inputTitle: 'interrupteur-1' },
+      { label: 'Interrupteur 2', inputTitle: 'interrupteur-2' },
+    ],
+  },
+  TagsGroup: {
+    tags: [{ children: 'Tag 1' }, { children: 'Tag 2' }],
+  },
+  Footer: {
+    accessibility: 'non compliant',
+    brandTop: 'RÉPUBLIQUE\nFRANÇAISE',
+    homeLinkProps: { href: '/', title: 'Accueil' },
+  },
+  SideMenu: {
+    title: 'Titre du menu',
+    burgerMenuButtonText: 'Dans cette rubrique',
+    items: [
+      { text: 'Premier lien', linkProps: { href: '#' } },
+      { text: 'Deuxième lien', linkProps: { href: '#' }, isActive: true },
+    ],
+  },
+  Header: {
+    brandTop: 'RÉPUBLIQUE\nFRANÇAISE',
+    homeLinkProps: { href: '/', title: 'Accueil' },
+    serviceTitle: 'Nom du service',
+  },
+};
+
+// Construit les `defaultProps` d'un composant à partir des `defaultValue` de ses
+// champs, complétées par les valeurs structurées ci-dessus.
+const buildDefaultProps = (
+  componentName: string,
+  fields: Record<string, any>
+) => {
+  const fromFields: Record<string, any> = {};
+  for (const [key, field] of Object.entries(fields || {})) {
+    if (field && field.defaultValue !== undefined) {
+      fromFields[key] = field.defaultValue;
+    }
+  }
+  return { ...fromFields, ...(STRUCTURED_DEFAULT_PROPS[componentName] || {}) };
+};
+
+// Types de champs reconnus par Puck. Un champ d'un autre type (ou mal configuré)
+// fait planter le panneau latéral quand le composant est sélectionné.
+const PUCK_FIELD_TYPES = new Set([
+  'text', 'textarea', 'number', 'select', 'radio', 'array', 'object',
+  'external', 'slot', 'custom',
+]);
+
+const sanitizeFields = (fields: Record<string, any>): Record<string, any> => {
+  const out: Record<string, any> = {};
+  for (const [key, field] of Object.entries(fields || {})) {
+    if (!field || !PUCK_FIELD_TYPES.has(field.type)) continue;
+
+    if ((field.type === 'select' || field.type === 'radio') && !Array.isArray(field.options)) {
+      continue;
+    }
+    if (field.type === 'array') {
+      if (!field.arrayFields || typeof field.arrayFields !== 'object') {
+        out[key] = { type: 'textarea', label: field.label };
+        continue;
+      }
+      out[key] = { ...field, arrayFields: sanitizeFields(field.arrayFields) };
+      continue;
+    }
+    if (field.type === 'object') {
+      if (!field.objectFields || typeof field.objectFields !== 'object') continue;
+      out[key] = { ...field, objectFields: sanitizeFields(field.objectFields) };
+      continue;
+    }
+    out[key] = field;
+  }
+  return out;
+};
+// ------------------------------------------------------------------------
+
 // Helper pour créer la configuration d'un composant
 const createComponentConfig = (componentName: DsfrComponentName) => {
   const info = DSFR_COMPONENTS_SUPPORT[componentName];
@@ -162,7 +362,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             ],
           },
           disabled: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Désactivé',
             defaultValue: false,
           },
@@ -452,7 +652,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             ],
           },
           horizontal: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Horizontal',
             defaultValue: false,
           },
@@ -492,7 +692,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             placeholder: 'Description de l\'alerte',
           },
           closable: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Fermable',
             defaultValue: false,
           },
@@ -556,7 +756,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             defaultValue: 'Tag',
           },
           dismissible: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Supprimable',
             defaultValue: false,
           },
@@ -580,7 +780,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             defaultValue: 'Titre de l\'accordéon',
           },
           defaultOpen: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Ouvert par défaut',
             defaultValue: false,
           },
@@ -776,12 +976,12 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             defaultValue: 'Libellé de l\'interrupteur',
           },
           checked: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Coché',
             defaultValue: false,
           },
           disabled: {
-            type: 'boolean',
+            type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }],
             label: 'Désactivé',
             defaultValue: false,
           },
@@ -1012,7 +1212,7 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
             ],
             arrayFields: {
               label: { type: 'text', label: 'Libellé' },
-              checked: { type: 'boolean', label: 'Coché' },
+              checked: { type: 'radio', options: [{ label: 'Oui', value: true }, { label: 'Non', value: false }], label: 'Coché' },
             },
           },
           className: {
@@ -1162,7 +1362,18 @@ const createComponentConfig = (componentName: DsfrComponentName) => {
         },
         render: (props: any) => {
           const Pagination = DSFR.Pagination ?? MissingComponent;
-          return <Pagination {...dsfrProps(props)} />;
+          const { currentPage, pagesCount, ...rest } = dsfrProps(props);
+          return (
+            <Pagination
+              count={Number(pagesCount) || 1}
+              defaultPage={Number(currentPage) || 1}
+              getPageLinkProps={(page: number) => ({
+                href: '#',
+                title: `Page ${page}`,
+              })}
+              {...rest}
+            />
+          );
         },
       };
 
@@ -1416,9 +1627,25 @@ export const generateFullPuckConfig = (): PuckConfig => {
   // Ajouter tous les composants avec support 'full' ou 'partial'
   (Object.keys(DSFR_COMPONENTS_SUPPORT) as DsfrComponentName[]).forEach((componentName) => {
     const info = DSFR_COMPONENTS_SUPPORT[componentName];
-    if (info.supportLevel !== 'none') {
-      components[`Dsfr${componentName}`] = createComponentConfig(componentName);
-    }
+    if (info.supportLevel === 'none') return;
+
+    const key = `Dsfr${componentName}`;
+    const config = createComponentConfig(componentName);
+    const originalRender = config.render;
+
+    components[key] = {
+      ...config,
+      label: key,
+      fields: sanitizeFields(config.fields),
+      // Valeurs par défaut pour un rendu correct dès le glisser-déposer.
+      defaultProps: buildDefaultProps(componentName, config.fields),
+      // Rendu isolé : une exception dans un composant n'affecte que sa carte.
+      render: (props: any) => (
+        <ComponentErrorBoundary name={key} resetKey={serializeForKey(props)}>
+          <RenderInvoker render={originalRender} props={props} />
+        </ComponentErrorBoundary>
+      ),
+    };
   });
 
   return {
