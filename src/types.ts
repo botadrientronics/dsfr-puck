@@ -12,8 +12,16 @@ export type PuckComponentConfig = {
   };
 };
 
+export type PuckCategory = {
+  title?: string;
+  components: string[];
+  defaultExpanded?: boolean;
+  visible?: boolean;
+};
+
 export type PuckConfig = {
   components: PuckComponentConfig;
+  categories?: Record<string, PuckCategory>;
 };
 
 // Types pour les composants react-dsfr

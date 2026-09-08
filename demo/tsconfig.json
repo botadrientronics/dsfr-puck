@@ -15,7 +15,8 @@
     "noEmit": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "dsfr-puck": ["../src/index.ts"]
     }
   },
   "include": ["src/**/*"],

@@ -88,14 +88,47 @@ export interface DsfrComponentInfo {
   name: DsfrComponentName;
   displayName: string;
   supportLevel: 'full' | 'partial' | 'none';
+  /**
+   * Périmètre de la bibliothèque, orientée « éditeur de contenu de site statique » :
+   * - `content`     : pertinent dans le corps d'une page → présent dans `puckConfig` par défaut ;
+   * - `out-of-scope`: conservé et documenté, mais retiré de `puckConfig` (formulaires,
+   *   en-tête/pied, navigation, authentification, recherche, graphiques, surcouches…).
+   *   Réactivable via `fullPuckConfig`.
+   */
+  scope: 'content' | 'out-of-scope';
   description: string;
   propsDescription?: string;
   limitations?: string[];
   reactDsfrImport?: string;
 }
 
-// Niveaux de support pour Puck
-export const DSFR_COMPONENTS_SUPPORT: Record<DsfrComponentName, DsfrComponentInfo> = {
+// Composants hors périmètre pour un éditeur de contenu de site statique.
+// Tout ce qui n'est pas dans cette liste est considéré comme du contenu de page.
+export const OUT_OF_SCOPE_COMPONENT_NAMES = new Set<DsfrComponentName>([
+  // Formulaires (pas de back-end sur un site statique)
+  'Input', 'Textarea', 'Select', 'SelectNext', 'Checkbox', 'RadioButtons',
+  'ToggleSwitch', 'ToggleSwitchGroup', 'Range', 'Upload', 'SegmentedControl',
+  // Chrome / navigation (générés par le gabarit, pas par le contenu)
+  'Header', 'Footer', 'SideMenu', 'SkipLinks', 'Breadcrumb', 'Pagination', 'LanguageSelect',
+  // Recherche
+  'SearchBar',
+  // Authentification
+  'FranceConnectButton', 'AgentConnectButton', 'MonCompteProButton', 'ProConnectButton',
+  // Surcouches / usage technique
+  'Modal', 'Tooltip', 'Display', 'Follow',
+  // Graphiques (nécessitent @gouvfr/dsfr-chart, configuration lourde)
+  'BarChart', 'LineChart', 'MultiLineChart', 'BarLineChart',
+  'PieChart', 'RadarChart', 'GaugeChart', 'ScatterChart',
+  // Illustrations : absentes de react-dsfr 1.x → remplacées par la primitive `Image`
+  'Artwork', 'ArtworkGov',
+]);
+
+// Niveaux de support pour Puck.
+// `scope` est calculé plus bas à partir de `OUT_OF_SCOPE_COMPONENT_NAMES` :
+// on ne le répète donc pas dans chaque entrée.
+type RawComponentInfo = Omit<DsfrComponentInfo, 'scope'>;
+
+const RAW_DSFR_COMPONENTS_SUPPORT: Record<DsfrComponentName, RawComponentInfo> = {
   // Formulaires - Support complet
   Button: {
     name: "Button",
@@ -274,20 +307,18 @@ export const DSFR_COMPONENTS_SUPPORT: Record<DsfrComponentName, DsfrComponentInf
   Notice: {
     name: "Notice",
     displayName: "Notification",
-    supportLevel: "partial",
-    description: "Notification avec titre, contenu et boutons d'action",
-    propsDescription: "title, children, buttons, type, closable, className",
-    limitations: ["Gestion des boutons d'action complexe dans Puck"],
+    supportLevel: "full",
+    description: "Bandeau d'information avec titre, description, lien et fermeture",
+    propsDescription: "title, description, severity, link, isClosable, className",
     reactDsfrImport: "Notice",
   },
-  
+
   Download: {
     name: "Download",
     displayName: "Téléchargement",
-    supportLevel: "partial",
-    description: "Lien de téléchargement avec détails",
-    propsDescription: "children, href, detail, className",
-    limitations: ["Nécéssite gestion manuelle du fichier"],
+    supportLevel: "full",
+    description: "Lien de téléchargement de fichier avec libellé et détails (format, poids)",
+    propsDescription: "label, details, linkProps.href, className",
     reactDsfrImport: "Download",
   },
   
@@ -633,29 +664,53 @@ export const DSFR_COMPONENTS_SUPPORT: Record<DsfrComponentName, DsfrComponentInf
   },
 };
 
-// Composants supportés dans la configuration Puck
-export const SUPPORTED_COMPONENTS = Object.entries(DSFR_COMPONENTS_SUPPORT)
-  .filter(([_, info]) => info.supportLevel !== 'none')
-  .map(([name]) => name as DsfrComponentName);
+// Enrichit chaque entrée avec son `scope` (contenu vs hors périmètre).
+export const DSFR_COMPONENTS_SUPPORT: Record<DsfrComponentName, DsfrComponentInfo> =
+  Object.fromEntries(
+    (Object.entries(RAW_DSFR_COMPONENTS_SUPPORT) as [DsfrComponentName, RawComponentInfo][]).map(
+      ([name, info]) => [
+        name,
+        {
+          ...info,
+          scope: OUT_OF_SCOPE_COMPONENT_NAMES.has(name) ? 'out-of-scope' : 'content',
+        } as DsfrComponentInfo,
+      ]
+    )
+  ) as Record<DsfrComponentName, DsfrComponentInfo>;
 
-// Statistiques
+// Composants DSFR dans la config Puck par défaut (corps de page).
+export const IN_SCOPE_COMPONENTS = (
+  Object.entries(DSFR_COMPONENTS_SUPPORT) as [DsfrComponentName, DsfrComponentInfo][]
+)
+  .filter(([, info]) => info.scope === 'content')
+  .map(([name]) => name);
+
+// Composants DSFR conservés mais retirés de la config par défaut (opt-in).
+export const OUT_OF_SCOPE_COMPONENTS = (
+  Object.entries(DSFR_COMPONENTS_SUPPORT) as [DsfrComponentName, DsfrComponentInfo][]
+)
+  .filter(([, info]) => info.scope === 'out-of-scope')
+  .map(([name]) => name);
+
+/** @deprecated Utiliser `IN_SCOPE_COMPONENTS`. */
+export const SUPPORTED_COMPONENTS = IN_SCOPE_COMPONENTS;
+
+// Statistiques par périmètre.
 export const getSupportStats = () => {
-  const full = Object.values(DSFR_COMPONENTS_SUPPORT).filter(
-    (c) => c.supportLevel === 'full'
-  ).length;
-  const partial = Object.values(DSFR_COMPONENTS_SUPPORT).filter(
-    (c) => c.supportLevel === 'partial'
-  ).length;
-  const none = Object.values(DSFR_COMPONENTS_SUPPORT).filter(
-    (c) => c.supportLevel === 'none'
-  ).length;
-  
+  const values = Object.values(DSFR_COMPONENTS_SUPPORT);
+  const total = values.length;
+  const inScope = values.filter((c) => c.scope === 'content').length;
+  const outOfScope = values.filter((c) => c.scope === 'out-of-scope').length;
+  const full = values.filter((c) => c.supportLevel === 'full').length;
+  const partial = values.filter((c) => c.supportLevel === 'partial').length;
+
   return {
-    total: Object.keys(DSFR_COMPONENTS_SUPPORT).length,
+    total,
+    inScope,
+    outOfScope,
     full,
     partial,
-    none,
-    fullPercentage: Math.round((full / Object.keys(DSFR_COMPONENTS_SUPPORT).length) * 100),
-    partialPercentage: Math.round((partial / Object.keys(DSFR_COMPONENTS_SUPPORT).length) * 100),
+    inScopePercentage: Math.round((inScope / total) * 100),
+    outOfScopePercentage: Math.round((outOfScope / total) * 100),
   };
 };
